@@ -1,0 +1,11 @@
+name: selftest
+on: [push]
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash ci/pwn.sh
